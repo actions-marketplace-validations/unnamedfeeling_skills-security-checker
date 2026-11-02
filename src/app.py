@@ -17,14 +17,16 @@ def main() -> None:
 
     # Read configuration (supporting GitHub Actions inputs and local env variables)
     api_key = os.getenv("INPUT_API_KEY") or os.getenv("API_KEY") or ""
-    endpoint = (
-        os.getenv("INPUT_ENDPOINT") or os.getenv("ENDPOINT") or "https://api.openai.com/v1"
-    )
+    endpoint = os.getenv("INPUT_ENDPOINT") or os.getenv("ENDPOINT") or "https://api.openai.com/v1"
     model = os.getenv("INPUT_MODEL") or os.getenv("MODEL") or "gpt-4o"
     target_dir = os.getenv("INPUT_TARGET_DIR") or os.getenv("TARGET_DIRECTORY") or "."
     fail_on_severity = (
         os.getenv("INPUT_FAIL_ON_SEVERITY") or os.getenv("FAIL_ON_SEVERITY") or "HIGH"
     )
+    show_attribution_str = (
+        os.getenv("INPUT_SHOW_ATTRIBUTION") or os.getenv("SHOW_ATTRIBUTION") or "true"
+    )
+    show_attribution = show_attribution_str.strip().lower() not in ("false", "0", "no")
 
     if not api_key:
         print("::error::Missing required API key. Please provide 'api-key' input or set API_KEY.")
@@ -62,7 +64,7 @@ def main() -> None:
 
     # 4. Emit GitHub Actions outputs
     emit_github_annotations(summary.reports)
-    write_step_summary(summary)
+    write_step_summary(summary, show_attribution=show_attribution)
 
     # 5. Determine CI exit code based on severity threshold
     if should_fail_build(summary.reports, fail_on_severity):

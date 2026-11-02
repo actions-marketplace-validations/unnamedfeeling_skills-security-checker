@@ -24,6 +24,10 @@ inputs:
     description: 'Minimum severity level to fail the CI workflow (CRITICAL, HIGH, MEDIUM, LOW, NONE)'
     required: false
     default: 'HIGH'
+  show-attribution:
+    description: 'Whether to show the attribution footer in the step summary (true/false)'
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -49,5 +53,6 @@ runs:
         INPUT_ENDPOINT: ${{ inputs.endpoint }}
         INPUT_MODEL: ${{ inputs.model }}
         INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
+        INPUT_SHOW_ATTRIBUTION: ${{ inputs.show-attribution }}
       run: |
         uv run --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py

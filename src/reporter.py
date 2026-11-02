@@ -78,7 +78,7 @@ def print_console_summary(reports: List[SkillAuditReport]) -> None:
     print("\n" + "=" * 60)
 
 
-def generate_step_summary(summary: AuditSummary) -> str:
+def generate_step_summary(summary: AuditSummary, show_attribution: bool = True) -> str:
     """Generates Markdown for $GITHUB_STEP_SUMMARY."""
     lines: List[str] = [
         "## 🛡️ Skill Security Audit Report\n",
@@ -119,16 +119,21 @@ def generate_step_summary(summary: AuditSummary) -> str:
     else:
         lines.append("\n> [!NOTE]\n> All assessed skills passed security checks without findings.")
 
+    if show_attribution:
+        lines.append(
+            "\n---\n*Security audit powered by [Skills Security Checker](https://github.com/unnamedfeeling/skills-security-checker) • Licensed under Apache-2.0 (Provided AS-IS without warranty).*"
+        )
+
     return "\n".join(lines)
 
 
-def write_step_summary(summary: AuditSummary) -> None:
+def write_step_summary(summary: AuditSummary, show_attribution: bool = True) -> None:
     """Writes the markdown summary to GITHUB_STEP_SUMMARY if the environment variable is set."""
     summary_path = os.getenv("GITHUB_STEP_SUMMARY")
     if not summary_path:
         return
 
-    markdown = generate_step_summary(summary)
+    markdown = generate_step_summary(summary, show_attribution=show_attribution)
     try:
         with open(summary_path, "a", encoding="utf-8") as f:
             f.write(markdown + "\n")

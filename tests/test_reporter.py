@@ -51,11 +51,18 @@ def test_generate_step_summary():
         total_vulnerabilities=1,
         reports=[report],
     )
-    md = generate_step_summary(summary)
-    assert "## 🛡️ Skill Security Audit Report" in md
-    assert "`malicious-skill`" in md
-    assert "Prompt override" in md
-    assert "Ignore previous instructions" in md
+    # Default: show_attribution is True
+    md_default = generate_step_summary(summary)
+    assert "## 🛡️ Skill Security Audit Report" in md_default
+    assert "`malicious-skill`" in md_default
+    assert "Prompt override" in md_default
+    assert "Ignore previous instructions" in md_default
+    assert "Security audit powered by [Skills Security Checker]" in md_default
+
+    # Explicit False: hides attribution
+    md_hidden = generate_step_summary(summary, show_attribution=False)
+    assert "Security audit powered by [Skills Security Checker]" not in md_hidden
+    assert "## 🛡️ Skill Security Audit Report" in md_hidden
 
 
 def test_emit_github_annotations(capsys):
