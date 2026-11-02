@@ -1,0 +1,53 @@
+name: 'Skill Security Auditor'
+description: 'Audits skills against malicious actions, prompt injections, and unsafe commands using an OpenAI-compatible endpoint'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  target-directory:
+    description: 'Path to skills directory or repository root'
+    required: false
+    default: '.'
+  api-key:
+    description: 'API key for the OpenAI-compatible endpoint'
+    required: true
+  endpoint:
+    description: 'Base URL for OpenAI-compatible API calls'
+    required: false
+    default: 'https://api.openai.com/v1'
+  model:
+    description: 'Model identifier'
+    required: false
+    default: 'gpt-4o'
+  fail-on-severity:
+    description: 'Minimum severity level to fail the CI workflow (CRITICAL, HIGH, MEDIUM, LOW, NONE)'
+    required: false
+    default: 'HIGH'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate and Install uv
+      id: setup-uv
+      shell: bash
+      run: |
+        if ! command -v uv >/dev/null 2>&1; then
+          echo "Installing uv..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        else
+          echo "uv is already installed."
+        fi
+
+    - name: Run Skill Security Auditor
+      shell: bash
+      env:
+        INPUT_TARGET_DIR: ${{ inputs.target-directory }}
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_ENDPOINT: ${{ inputs.endpoint }}
+        INPUT_MODEL: ${{ inputs.model }}
+        INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
+      run: |
+        uv run --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py
