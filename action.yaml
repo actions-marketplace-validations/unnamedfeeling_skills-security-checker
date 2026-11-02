@@ -32,6 +32,15 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Mask secrets in logs
+      shell: bash
+      env:
+        INPUT_API_KEY: ${{ inputs.api-key }}
+      run: |
+        if [ -n "$INPUT_API_KEY" ]; then
+          echo "::add-mask::$INPUT_API_KEY"
+        fi
+  
     - name: Validate and Install uv
       id: setup-uv
       shell: bash
