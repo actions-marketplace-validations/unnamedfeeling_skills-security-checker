@@ -10,7 +10,8 @@ A composite GitHub Action and security CLI that audits agent skills against mali
 - **Dangerous Command Detection**: Catches destructive shell operations (`rm -rf`, pipe-to-bash, unauthorized `sudo`).
 - **Data Exfiltration Prevention**: Flags unauthorized access to secrets (`~/.ssh`, `~/.aws`, `.env`) and suspicious outbound network requests.
 - **OpenAI-Compatible**: Seamlessly works with OpenAI, OpenRouter, Ollama, LiteLLM, vLLM, or any custom inference endpoint.
-- **Native GitHub Annotations**: Emits inline `::error` and `::warning` annotations on PR diffs and generates rich Markdown step summaries.
+- **Native GitHub Annotations & Issues**: Emits inline `::error` annotations on PR diffs, generates Markdown step summaries, and optionally opens tracked GitHub Security Issues for findings with automatic deduplication.
+- **Enterprise Findings Export**: Extensible exporter architecture supporting **OASIS SARIF v2.1.0** (GitHub Code Scanning) and **AWS Security Finding Format (ASFF)** (AWS Security Hub).
 
 ---
 
@@ -31,6 +32,10 @@ jobs:
   audit-skills:
     name: Skill Security Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # Required if create-issues is enabled
+      security-events: write # Required if upload-sarif is enabled
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,18 +43,24 @@ jobs:
       - name: Run Skills Security Checker
         uses: ./ # Or your-username/skills-security-checker@v1
         with:
-          # Specify one or more directories to audit (comma- or newline-separated)
           target-directories: |
             skills
             prompts
             .copilot
-            .codex
           api-key: ${{ secrets.OPENAI_API_KEY }}
-          endpoint: 'https://api.openai.com/v1' # Or custom endpoint
-          model: 'gpt-4o'
-          fail-on-severity: 'HIGH' # CRITICAL, HIGH, MEDIUM, LOW, or NONE
-          show-attribution: 'true' # Set to 'false' to hide step summary attribution footer
-          prompt-path: '' # Optional path to custom prompt markdown file
+          fail-on-severity: 'HIGH'
+          sarif-file: 'results.sarif'
+          aws-findings-file: 'aws-findings.json'
+          # Optional: Automatically open tracked GitHub Security Issues
+          create-issues: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-min-severity: 'HIGH'
+
+      - name: Upload SARIF report to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'results.sarif'
 ```
 
 ---

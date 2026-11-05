@@ -31,6 +31,38 @@ inputs:
     description: 'Path to custom audit system prompt markdown file'
     required: false
     default: ''
+  sarif-file:
+    description: 'Path to export findings in SARIF v2.1.0 format (e.g. results.sarif)'
+    required: false
+    default: ''
+  aws-findings-file:
+    description: 'Path to export findings in AWS Security Finding Format ASFF (e.g. aws-findings.json)'
+    required: false
+    default: ''
+  export-formats:
+    description: 'Comma-separated export formats (e.g. "sarif,aws")'
+    required: false
+    default: ''
+  export-output-dir:
+    description: 'Target directory for exported format files (default: .)'
+    required: false
+    default: '.'
+  github-token:
+    description: 'GitHub token for creating security issues (e.g. secrets.GITHUB_TOKEN)'
+    required: false
+    default: ''
+  create-issues:
+    description: 'Whether to create GitHub issues for detected security findings (true/false). Default: false'
+    required: false
+    default: 'false'
+  issue-labels:
+    description: 'Comma-separated labels to attach to created GitHub security issues. Default: "security, automated-audit"'
+    required: false
+    default: 'security, automated-audit'
+  issue-min-severity:
+    description: 'Minimum severity level required to open a GitHub issue (CRITICAL, HIGH, MEDIUM, LOW). Default: HIGH'
+    required: false
+    default: 'HIGH'
 
 runs:
   using: 'composite'
@@ -67,5 +99,13 @@ runs:
         INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
         INPUT_SHOW_ATTRIBUTION: ${{ inputs.show-attribution }}
         INPUT_PROMPT_PATH: ${{ inputs.prompt-path }}
+        INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
+        INPUT_AWS_FINDINGS_FILE: ${{ inputs.aws-findings-file }}
+        INPUT_EXPORT_FORMATS: ${{ inputs.export-formats }}
+        INPUT_EXPORT_OUTPUT_DIR: ${{ inputs.export-output-dir }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_CREATE_ISSUES: ${{ inputs.create-issues }}
+        INPUT_ISSUE_LABELS: ${{ inputs.issue-labels }}
+        INPUT_ISSUE_MIN_SEVERITY: ${{ inputs.issue-min-severity }}
       run: |
         uv run --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py

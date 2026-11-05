@@ -3,11 +3,14 @@ from __future__ import annotations
 import os
 import sys
 from collections import OrderedDict
+from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
 from src.auditor import audit_skill, load_prompt
+from src.exporters import export_findings
+from src.github_issues import create_github_security_issues
 from src.models import AuditSummary, DirectoryAuditReport, DiscoveredSkill
 from src.reporter import (
     emit_github_annotations,
@@ -44,6 +47,46 @@ def main() -> None:
         os.getenv("INPUT_SHOW_ATTRIBUTION") or os.getenv("SHOW_ATTRIBUTION") or "true"
     )
     show_attribution = show_attribution_str.strip().lower() not in ("false", "0", "no")
+
+    sarif_file = os.getenv("INPUT_SARIF_FILE") or os.getenv("SARIF_FILE")
+    aws_findings_file = os.getenv("INPUT_AWS_FINDINGS_FILE") or os.getenv("AWS_FINDINGS_FILE")
+    export_formats_raw = os.getenv("INPUT_EXPORT_FORMATS") or os.getenv("EXPORT_FORMATS")
+    export_output_dir = (
+        os.getenv("INPUT_EXPORT_OUTPUT_DIR") or os.getenv("EXPORT_OUTPUT_DIR") or "."
+    )
+
+    github_token = (
+        os.getenv("INPUT_GITHUB_TOKEN") or os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN") or ""
+    )
+    create_issues_str = os.getenv("INPUT_CREATE_ISSUES") or os.getenv("CREATE_ISSUES") or "false"
+    create_issues = create_issues_str.strip().lower() in ("true", "1", "yes")
+    issue_labels_raw = (
+        os.getenv("INPUT_ISSUE_LABELS") or os.getenv("ISSUE_LABELS") or "security, automated-audit"
+    )
+    issue_min_severity = (
+        os.getenv("INPUT_ISSUE_MIN_SEVERITY") or os.getenv("ISSUE_MIN_SEVERITY") or "HIGH"
+    )
+
+    github_token = (
+        os.getenv("INPUT_GITHUB_TOKEN")
+        or os.getenv("GITHUB_TOKEN")
+        or os.getenv("GH_TOKEN")
+        or ""
+    )
+    create_issues_str = (
+        os.getenv("INPUT_CREATE_ISSUES") or os.getenv("CREATE_ISSUES") or "false"
+    )
+    create_issues = create_issues_str.strip().lower() in ("true", "1", "yes")
+    issue_labels_raw = (
+        os.getenv("INPUT_ISSUE_LABELS")
+        or os.getenv("ISSUE_LABELS")
+        or "security, automated-audit"
+    )
+    issue_min_severity = (
+        os.getenv("INPUT_ISSUE_MIN_SEVERITY")
+        or os.getenv("ISSUE_MIN_SEVERITY")
+        or "HIGH"
+    )
 
     if not api_key:
         print("::error::Missing required API key. Please provide 'api-key' input or set API_KEY.")
@@ -141,6 +184,38 @@ def main() -> None:
     # Emit GitHub Actions outputs
     emit_github_annotations(summary.reports)
     write_step_summary(summary, show_attribution=show_attribution)
+
+    # Export findings to external schemas if configured
+    if sarif_file:
+        out_sarif = export_findings(summary, "sarif", sarif_file)
+        print(f"::notice::Exported SARIF findings to '{out_sarif}'.")
+
+    if aws_findings_file:
+        out_aws = export_findings(summary, "aws", aws_findings_file)
+        print(f"::notice::Exported AWS ASFF findings to '{out_aws}'.")
+
+    if export_formats_raw:
+        requested_formats = [f.strip().lower() for f in export_formats_raw.split(",") if f.strip()]
+        for fmt in requested_formats:
+            ext = "sarif" if fmt == "sarif" else "json"
+            out_path = Path(export_output_dir) / f"skills-security-{fmt}.{ext}"
+            export_findings(summary, fmt, out_path)
+            print(f"::notice::Exported {fmt.upper()} findings to '{out_path}'.")
+
+    # Create GitHub Security Issues if enabled
+    if create_issues:
+        if not github_token:
+            print(
+                "::warning::'create-issues' is enabled but no 'github-token' was provided; skipping issue creation."
+            )
+        else:
+            labels = [lbl.strip() for lbl in issue_labels_raw.split(",") if lbl.strip()]
+            create_github_security_issues(
+                summary=summary,
+                token=github_token,
+                labels=labels,
+                min_severity=issue_min_severity,
+            )
 
     # Determine CI exit code based on severity threshold
     if should_fail_build(summary.reports, fail_on_severity):
