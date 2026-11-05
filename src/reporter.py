@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-from typing import List
+from typing import List, Union
 
-from src.models import AuditSummary, SeverityLevel, SkillAuditReport
+from src.models import AuditSummary, DirectoryAuditReport, SeverityLevel, SkillAuditReport
 
 SEVERITY_ORDER: dict[str, int] = {
     "CRITICAL": 5,
@@ -30,8 +30,6 @@ STATUS_ICONS = {
 
 def emit_github_annotations(reports: List[SkillAuditReport]) -> None:
     """Emits GitHub Actions annotations to surface inline warnings and errors in PR diffs."""
-    is_github_actions = "GITHUB_ACTIONS" in os.environ
-
     for report in reports:
         for vuln in report.vulnerabilities:
             msg = f"[{vuln.category.upper()}] {vuln.title}: {vuln.description}"
@@ -51,61 +49,143 @@ def emit_github_annotations(reports: List[SkillAuditReport]) -> None:
 
             print(cmd)
 
-    if not is_github_actions:
-        # Also print a human-friendly console output when running locally
-        print_console_summary(reports)
 
-
-def print_console_summary(reports: List[SkillAuditReport]) -> None:
-    """Prints a clean human-readable summary to standard out."""
-    print("\n" + "=" * 60)
-    print("SKILL SECURITY AUDIT SUMMARY")
-    print("=" * 60)
-    for report in reports:
-        print(
-            f"\nSkill: {report.skill_name} [{report.status}] (Risk Score: {report.risk_score}/100)"
-        )
-        print(f"Path:  {report.skill_path}")
-        print(f"Note:  {report.summary}")
-        if not report.vulnerabilities:
-            print("  No security vulnerabilities detected.")
-        else:
+def print_directory_summary(dir_report: DirectoryAuditReport) -> None:
+    """Prints a clear summary for a single directory's audit."""
+    status_icon = STATUS_ICONS.get(dir_report.status, dir_report.status)
+    print("\n" + "-" * 60)
+    print(f"DIRECTORY REPORT: '{dir_report.directory}' [{status_icon}]")
+    print(
+        f"Items Scanned: {dir_report.scanned_count} | "
+        f"Passed: {dir_report.passed_count} | "
+        f"Warned: {dir_report.warned_count} | "
+        f"Failed: {dir_report.failed_count} | "
+        f"Max Risk Score: {dir_report.risk_score}/100"
+    )
+    print("-" * 60)
+    for report in dir_report.reports:
+        rep_icon = STATUS_ICONS.get(report.status, report.status)
+        print(f"  • {report.skill_name} [{rep_icon}] (Risk: {report.risk_score}/100)")
+        if report.vulnerabilities:
             for v in report.vulnerabilities:
                 line_str = f":{v.line_number}" if v.line_number else ""
-                print(f"  - [{v.severity}] {v.title} ({v.file_path}{line_str})")
-                print(f"    Category: {v.category}")
-                print(f"    Advice:   {v.recommendation}")
+                print(f"      [{v.severity}] {v.title} ({v.file_path}{line_str})")
+
+
+def print_overall_summary(summary: AuditSummary) -> None:
+    """Prints a high-level summary of the entire scan across all directories."""
+    status_icon = STATUS_ICONS.get(summary.status, summary.status)
     print("\n" + "=" * 60)
+    print(f"OVERALL RUN SUMMARY [{status_icon}]")
+    print("=" * 60)
+    print(f"Directories Audited: {len(summary.directories)}")
+    for d in summary.directories:
+        d_icon = STATUS_ICONS.get(d.status, d.status)
+        print(
+            f"  - {d.directory:<25} [{d_icon}] Scanned: {d.scanned_count}, Failed: {d.failed_count}"
+        )
+
+    print("-" * 60)
+    print(
+        f"Total Items Scanned:  {summary.scanned_skills_count}\n"
+        f"Total Passed:         {summary.passed_skills_count}\n"
+        f"Total Warned:         {summary.warned_skills_count}\n"
+        f"Total Failed:         {summary.failed_skills_count}\n"
+        f"Total Findings:       {summary.total_vulnerabilities}"
+    )
+    print("=" * 60 + "\n")
+
+
+def print_console_summary(summary_or_reports: Union[AuditSummary, List[SkillAuditReport]]) -> None:
+    """Prints a clean human-readable summary to stdout for local executions."""
+    if isinstance(summary_or_reports, AuditSummary):
+        print_overall_summary(summary_or_reports)
+    else:
+        # Legacy list of reports fallback
+        print("\n" + "=" * 60)
+        print("SKILL SECURITY AUDIT SUMMARY")
+        print("=" * 60)
+        for report in summary_or_reports:
+            print(
+                f"\nSkill: {report.skill_name} [{report.status}] (Risk Score: {report.risk_score}/100)"
+            )
+            print(f"Path:  {report.skill_path}")
+            print(f"Note:  {report.summary}")
+            if not report.vulnerabilities:
+                print("  No security vulnerabilities detected.")
+            else:
+                for v in report.vulnerabilities:
+                    line_str = f":{v.line_number}" if v.line_number else ""
+                    print(f"  - [{v.severity}] {v.title} ({v.file_path}{line_str})")
+        print("\n" + "=" * 60)
 
 
 def generate_step_summary(summary: AuditSummary, show_attribution: bool = True) -> str:
-    """Generates Markdown for $GITHUB_STEP_SUMMARY."""
+    """Generates Markdown for $GITHUB_STEP_SUMMARY with per-directory breakdowns and run summary."""
+    status_badge = STATUS_ICONS.get(summary.status, summary.status)
     lines: List[str] = [
-        "## 🛡️ Skill Security Audit Report\n",
-        f"**Audited Skills:** {summary.scanned_skills_count} | "
+        f"## 🛡️ Skill Security Audit Report [{status_badge}]\n",
+        f"**Directories Scanned:** {len(summary.directories)} | "
+        f"**Total Items:** {summary.scanned_skills_count} | "
         f"**Passed:** {summary.passed_skills_count} | "
         f"**Warned:** {summary.warned_skills_count} | "
         f"**Failed:** {summary.failed_skills_count}\n",
-        "| Skill Name | Status | Risk Score | Findings | Summary |",
-        "| :--- | :---: | :---: | :---: | :--- |",
     ]
 
-    for report in summary.reports:
-        status_badge = STATUS_ICONS.get(report.status, report.status)
-        vuln_count = len(report.vulnerabilities)
-        lines.append(
-            f"| `{report.skill_name}` | {status_badge} | **{report.risk_score}/100** | {vuln_count} | {report.summary} |"
-        )
+    # Section 1: Directory Overview Table (if multiple directories or directory reports exist)
+    if summary.directories:
+        lines.append("### 📁 Directories Overview\n")
+        lines.append("| Directory | Status | Scanned | Passed | Warned | Failed | Max Risk |")
+        lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |")
+        for d in summary.directories:
+            d_badge = STATUS_ICONS.get(d.status, d.status)
+            lines.append(
+                f"| `{d.directory}` | {d_badge} | {d.scanned_count} | {d.passed_count} | "
+                f"{d.warned_count} | {d.failed_count} | **{d.risk_score}/100** |"
+            )
+        lines.append("")
 
-    # Detailed findings section
-    has_any_findings = any(r.vulnerabilities for r in summary.reports)
-    if has_any_findings:
-        lines.append("\n### 🔍 Detailed Vulnerability Findings\n")
+    # Section 2: Per-Directory Details
+    if summary.directories:
+        for d in summary.directories:
+            lines.append(f"### Directory: `{d.directory}`\n")
+            if not d.reports:
+                lines.append("> _No skills or prompt files discovered in this directory._\n")
+                continue
+
+            lines.append("| Item Name | Status | Risk Score | Findings | Summary |")
+            lines.append("| :--- | :---: | :---: | :---: | :--- |")
+            for report in d.reports:
+                rep_badge = STATUS_ICONS.get(report.status, report.status)
+                vuln_count = len(report.vulnerabilities)
+                lines.append(
+                    f"| `{report.skill_name}` | {rep_badge} | **{report.risk_score}/100** | {vuln_count} | {report.summary} |"
+                )
+            lines.append("")
+    else:
+        # Fallback if no directory grouping
+        lines.append("| Skill Name | Status | Risk Score | Findings | Summary |")
+        lines.append("| :--- | :---: | :---: | :---: | :--- |")
         for report in summary.reports:
+            rep_badge = STATUS_ICONS.get(report.status, report.status)
+            vuln_count = len(report.vulnerabilities)
+            lines.append(
+                f"| `{report.skill_name}` | {rep_badge} | **{report.risk_score}/100** | {vuln_count} | {report.summary} |"
+            )
+        lines.append("")
+
+    # Section 3: Detailed Vulnerability Findings
+    all_reports = (
+        summary.reports if summary.reports else [r for d in summary.directories for r in d.reports]
+    )
+    has_any_findings = any(r.vulnerabilities for r in all_reports)
+    if has_any_findings:
+        lines.append("### 🔍 Detailed Vulnerability Findings\n")
+        for report in all_reports:
             if not report.vulnerabilities:
                 continue
 
-            lines.append(f"#### Skill: `{report.skill_name}`\n")
+            lines.append(f"#### `{report.skill_name}` (`{report.skill_path}`)\n")
             for v in report.vulnerabilities:
                 sev_badge = SEVERITY_ICONS.get(v.severity, v.severity)
                 loc = f"`{v.file_path}`" + (f" (Line {v.line_number})" if v.line_number else "")
@@ -117,7 +197,9 @@ def generate_step_summary(summary: AuditSummary, show_attribution: bool = True) 
                 lines.append(f"- **Recommendation:** {v.recommendation}\n")
                 lines.append("</details>\n")
     else:
-        lines.append("\n> [!NOTE]\n> All assessed skills passed security checks without findings.")
+        lines.append(
+            "> [!NOTE]\n> All assessed skills and prompts passed security checks without findings."
+        )
 
     if show_attribution:
         lines.append(

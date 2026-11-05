@@ -38,12 +38,18 @@ jobs:
       - name: Run Skills Security Checker
         uses: ./ # Or your-username/skills-security-checker@v1
         with:
-          target-directory: '.'
+          # Specify one or more directories to audit (comma- or newline-separated)
+          target-directories: |
+            skills
+            prompts
+            .copilot
+            .codex
           api-key: ${{ secrets.OPENAI_API_KEY }}
           endpoint: 'https://api.openai.com/v1' # Or custom endpoint
           model: 'gpt-4o'
           fail-on-severity: 'HIGH' # CRITICAL, HIGH, MEDIUM, LOW, or NONE
           show-attribution: 'true' # Set to 'false' to hide step summary attribution footer
+          prompt-path: '' # Optional path to custom prompt markdown file
 ```
 
 ---

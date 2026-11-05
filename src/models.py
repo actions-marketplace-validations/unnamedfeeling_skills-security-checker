@@ -50,15 +50,35 @@ class SkillAuditReport(BaseModel):
     vulnerabilities: List[Vulnerability] = Field(default_factory=list)
 
 
-class AuditSummary(BaseModel):
-    """Cumulative assessment results across all skills in the target directory."""
+class DirectoryAuditReport(BaseModel):
+    """Assessment results for a specific target directory."""
 
+    directory: str = Field(description="Scanned directory path")
+    status: Literal["PASS", "WARN", "FAIL"] = Field(
+        default="PASS", description="Directory-level verdict"
+    )
+    risk_score: int = Field(
+        default=0, ge=0, le=100, description="Highest risk score among items in this directory"
+    )
+    scanned_count: int = 0
+    passed_count: int = 0
+    warned_count: int = 0
+    failed_count: int = 0
+    total_vulnerabilities: int = 0
+    reports: List[SkillAuditReport] = Field(default_factory=list)
+
+
+class AuditSummary(BaseModel):
+    """Cumulative assessment results across all scanned directories and skills."""
+
+    directories: List[DirectoryAuditReport] = Field(default_factory=list)
     scanned_skills_count: int = 0
     passed_skills_count: int = 0
     warned_skills_count: int = 0
     failed_skills_count: int = 0
     total_vulnerabilities: int = 0
     reports: List[SkillAuditReport] = Field(default_factory=list)
+    status: Literal["PASS", "WARN", "FAIL"] = "PASS"
 
 
 class DiscoveredSkill(BaseModel):

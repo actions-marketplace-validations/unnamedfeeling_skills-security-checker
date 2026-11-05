@@ -1,4 +1,9 @@
-from src.models import AuditSummary, SkillAuditReport, Vulnerability
+from src.models import (
+    AuditSummary,
+    DirectoryAuditReport,
+    SkillAuditReport,
+    Vulnerability,
+)
 from src.reporter import emit_github_annotations, generate_step_summary, should_fail_build
 
 
@@ -63,6 +68,35 @@ def test_generate_step_summary():
     md_hidden = generate_step_summary(summary, show_attribution=False)
     assert "Security audit powered by [Skills Security Checker]" not in md_hidden
     assert "## 🛡️ Skill Security Audit Report" in md_hidden
+
+
+def test_generate_step_summary_multiple_directories():
+    report1 = create_sample_report()
+    dir1 = DirectoryAuditReport(
+        directory="skills",
+        scanned_count=1,
+        failed_count=1,
+        reports=[report1],
+    )
+    dir2 = DirectoryAuditReport(
+        directory=".copilot",
+        scanned_count=0,
+        passed_count=0,
+        reports=[],
+    )
+    summary = AuditSummary(
+        directories=[dir1, dir2],
+        scanned_skills_count=1,
+        failed_skills_count=1,
+        total_vulnerabilities=1,
+        reports=[report1],
+    )
+    md = generate_step_summary(summary)
+    assert "### 📁 Directories Overview" in md
+    assert "`skills`" in md
+    assert "`.copilot`" in md
+    assert "### Directory: `skills`" in md
+    assert "### Directory: `.copilot`" in md
 
 
 def test_emit_github_annotations(capsys):
