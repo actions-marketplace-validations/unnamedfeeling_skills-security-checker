@@ -6,12 +6,16 @@ A composite GitHub Action and security CLI that audits agent skills against mali
 
 ## Features
 
+- **OpenAI-Compatible**: Seamlessly works with OpenAI, OpenRouter, Ollama, LiteLLM, vLLM, or any custom inference endpoint.
+- **Bring your own rules**: There is a sane defaults, but you own the validation process on your side
+- **Native GitHub Annotations & Issues**: Emits inline `::error` annotations on PR diffs, generates Markdown step summaries, and optionally opens tracked GitHub Security Issues for findings with automatic deduplication.
+- **Enterprise Findings Export**: Extensible exporter architecture supporting **OASIS SARIF v2.1.0** (GitHub Code Scanning) and **AWS Security Finding Format (ASFF)** (AWS Security Hub).
+- **Modern tooling**: Python 3.10+, uv, ruff and agentic development supported
+
+Baseline (included):
 - **Prompt Injection Defense**: Detects jailbreak attempts, hidden developer overrides, and behavioral deviations in `SKILL.md` definitions.
 - **Dangerous Command Detection**: Catches destructive shell operations (`rm -rf`, pipe-to-bash, unauthorized `sudo`).
 - **Data Exfiltration Prevention**: Flags unauthorized access to secrets (`~/.ssh`, `~/.aws`, `.env`) and suspicious outbound network requests.
-- **OpenAI-Compatible**: Seamlessly works with OpenAI, OpenRouter, Ollama, LiteLLM, vLLM, or any custom inference endpoint.
-- **Native GitHub Annotations & Issues**: Emits inline `::error` annotations on PR diffs, generates Markdown step summaries, and optionally opens tracked GitHub Security Issues for findings with automatic deduplication.
-- **Enterprise Findings Export**: Extensible exporter architecture supporting **OASIS SARIF v2.1.0** (GitHub Code Scanning) and **AWS Security Finding Format (ASFF)** (AWS Security Hub).
 
 ---
 
@@ -182,4 +186,3 @@ uv run mypy src
 ## License
 
 This project is licensed under the [Apache License, Version 2.0](LICENSE).
-
