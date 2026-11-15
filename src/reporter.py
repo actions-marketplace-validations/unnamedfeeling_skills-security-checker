@@ -3,15 +3,13 @@ from __future__ import annotations
 import os
 from typing import List, Union
 
+from src.config import (
+    DEFAULT_ANNOTATION_LEVELS,
+    DEFAULT_SEVERITY_ORDER,
+)
 from src.models import AuditSummary, DirectoryAuditReport, SeverityLevel, SkillAuditReport
 
-SEVERITY_ORDER: dict[str, int] = {
-    "CRITICAL": 5,
-    "HIGH": 4,
-    "MEDIUM": 3,
-    "LOW": 2,
-    "INFO": 1,
-}
+SEVERITY_ORDER: dict[str, int] = dict(DEFAULT_SEVERITY_ORDER)
 
 SEVERITY_ICONS: dict[SeverityLevel, str] = {
     "CRITICAL": "🛑 CRITICAL",
@@ -28,8 +26,12 @@ STATUS_ICONS = {
 }
 
 
-def emit_github_annotations(reports: List[SkillAuditReport]) -> None:
+def emit_github_annotations(
+    reports: List[SkillAuditReport],
+    annotation_levels: dict[str, str] | None = None,
+) -> None:
     """Emits GitHub Actions annotations to surface inline warnings and errors in PR diffs."""
+    mapping = annotation_levels or DEFAULT_ANNOTATION_LEVELS
     for report in reports:
         for vuln in report.vulnerabilities:
             msg = f"[{vuln.category.upper()}] {vuln.title}: {vuln.description}"
@@ -40,9 +42,10 @@ def emit_github_annotations(reports: List[SkillAuditReport]) -> None:
                 loc_parts.append(f"line={vuln.line_number}")
             loc_str = f" {','.join(loc_parts)}" if loc_parts else ""
 
-            if vuln.severity in ("CRITICAL", "HIGH"):
+            level = mapping.get(vuln.severity, "warning")
+            if level == "error":
                 cmd = f"::error{loc_str}::{msg}"
-            elif vuln.severity in ("MEDIUM", "LOW"):
+            elif level == "warning":
                 cmd = f"::warning{loc_str}::{msg}"
             else:
                 cmd = f"::notice{loc_str}::{msg}"
@@ -223,17 +226,22 @@ def write_step_summary(summary: AuditSummary, show_attribution: bool = True) -> 
         print(f"::warning::Failed to write step summary to {summary_path}: {e}")
 
 
-def should_fail_build(reports: List[SkillAuditReport], threshold_str: str) -> bool:
+def should_fail_build(
+    reports: List[SkillAuditReport],
+    threshold_str: str,
+    severity_order: dict[str, int] | None = None,
+) -> bool:
     """Evaluates whether any finding meets or exceeds the configured failure threshold."""
+    order = severity_order or SEVERITY_ORDER
     norm_threshold = threshold_str.strip().upper()
     if norm_threshold == "NONE":
         return False
 
-    threshold_level = SEVERITY_ORDER.get(norm_threshold, 4)  # default HIGH (4)
+    threshold_level = order.get(norm_threshold, 4)  # default HIGH (4)
 
     for report in reports:
         for vuln in report.vulnerabilities:
-            vuln_level = SEVERITY_ORDER.get(vuln.severity, 1)
+            vuln_level = order.get(vuln.severity, 1)
             if vuln_level >= threshold_level:
                 return True
     return False

@@ -4,43 +4,16 @@ import os
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Dict, List
 
+from src.config import (
+    DEFAULT_AWS_SEVERITY_MAPPING,
+    DEFAULT_AWS_TYPES_MAPPING,
+)
 from src.exporters.base import BaseExporter, ExporterRegistry
 from src.models import AuditSummary, SeverityLevel, SkillAuditReport, Vulnerability
 
-AWS_SEVERITY_MAPPING: Dict[SeverityLevel, str] = {
-    "CRITICAL": "CRITICAL",
-    "HIGH": "HIGH",
-    "MEDIUM": "MEDIUM",
-    "LOW": "LOW",
-    "INFO": "INFORMATIONAL",
-}
-
-AWS_TYPES_MAPPING = {
-    "prompt_injection": [
-        "TTPs/Initial Access",
-        "Software and Configuration Checks/Vulnerabilities/Adversarial",
-    ],
-    "command_injection": [
-        "TTPs/Execution",
-        "Software and Configuration Checks/Vulnerabilities/Command Injection",
-    ],
-    "data_exfiltration": [
-        "TTPs/Exfiltration",
-        "Effects/Data Exposure",
-    ],
-    "privilege_escalation": [
-        "TTPs/Privilege Escalation",
-    ],
-    "insecure_file_access": [
-        "TTPs/Defense Evasion",
-    ],
-    "obfuscation": [
-        "TTPs/Defense Evasion/Obfuscated Files or Information",
-    ],
-    "other": [
-        "Software and Configuration Checks/Vulnerabilities",
-    ],
-}
+# Retain module-level default references for backward compatibility
+AWS_SEVERITY_MAPPING: Dict[SeverityLevel, str] = dict(DEFAULT_AWS_SEVERITY_MAPPING)  # type: ignore[assignment]
+AWS_TYPES_MAPPING: Dict[str, List[str]] = dict(DEFAULT_AWS_TYPES_MAPPING)
 
 
 @ExporterRegistry.register
@@ -49,11 +22,24 @@ class AwsSecurityHubExporter(BaseExporter):
 
     format_name: ClassVar[str] = "aws"
 
-    def __init__(self, account_id: str | None = None, region: str | None = None) -> None:
+    def __init__(
+        self,
+        account_id: str | None = None,
+        region: str | None = None,
+        types_mapping: Dict[str, List[str]] | None = None,
+        severity_mapping: Dict[str, str] | None = None,
+    ) -> None:
         self.account_id = account_id or os.getenv("AWS_ACCOUNT_ID") or "000000000000"
         self.region = (
             region or os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
         )
+        self.types_mapping = dict(DEFAULT_AWS_TYPES_MAPPING)
+        if types_mapping:
+            self.types_mapping.update(types_mapping)
+
+        self.severity_mapping = dict(DEFAULT_AWS_SEVERITY_MAPPING)
+        if severity_mapping:
+            self.severity_mapping.update(severity_mapping)
 
     def export(self, summary: AuditSummary) -> Dict[str, Any]:
         """Converts AuditSummary into AWS Security Finding Format (ASFF) batch import format."""
@@ -83,8 +69,11 @@ class AwsSecurityHubExporter(BaseExporter):
             f"arn:aws:securityhub:{self.region}:{self.account_id}:product/skills-security-checker"
         )
         finding_id = f"{product_arn}/{report.skill_name}/{vuln.id}"
-        types = AWS_TYPES_MAPPING.get(vuln.category, AWS_TYPES_MAPPING["other"])
-        severity_label = AWS_SEVERITY_MAPPING.get(vuln.severity, "INFORMATIONAL")
+        types = self.types_mapping.get(
+            vuln.category,
+            self.types_mapping.get("other", ["Software and Configuration Checks/Vulnerabilities"]),
+        )
+        severity_label = self.severity_mapping.get(vuln.severity, "INFORMATIONAL")
 
         product_fields: Dict[str, str] = {
             "skills-security-checker/SkillName": report.skill_name,

@@ -31,6 +31,22 @@ inputs:
     description: 'Path to custom audit system prompt markdown file'
     required: false
     default: ''
+  finding-levels:
+    description: 'JSON string or file path overriding severity ranking, SARIF levels, AWS levels, and annotation levels'
+    required: false
+    default: ''
+  aws-types-mapping:
+    description: 'JSON string or file path overriding AWS Security Hub finding types mapping'
+    required: false
+    default: ''
+  sarif-rules:
+    description: 'JSON string or file path overriding SARIF rule definitions'
+    required: false
+    default: ''
+  config-file:
+    description: 'Path to a unified JSON configuration file (e.g. .skills-security.json)'
+    required: false
+    default: ''
   sarif-file:
     description: 'Path to export findings in SARIF v2.1.0 format (e.g. results.sarif)'
     required: false
@@ -99,6 +115,10 @@ runs:
         INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
         INPUT_SHOW_ATTRIBUTION: ${{ inputs.show-attribution }}
         INPUT_PROMPT_PATH: ${{ inputs.prompt-path }}
+        INPUT_FINDING_LEVELS: ${{ inputs.finding-levels }}
+        INPUT_AWS_TYPES_MAPPING: ${{ inputs.aws-types-mapping }}
+        INPUT_SARIF_RULES: ${{ inputs.sarif-rules }}
+        INPUT_CONFIG_FILE: ${{ inputs.config-file }}
         INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
         INPUT_AWS_FINDINGS_FILE: ${{ inputs.aws-findings-file }}
         INPUT_EXPORT_FORMATS: ${{ inputs.export-formats }}

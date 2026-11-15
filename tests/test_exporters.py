@@ -191,3 +191,57 @@ def test_export_to_file(tmp_path: Path):
     assert aws_file.is_file()
     aws_data = json.loads(aws_file.read_text(encoding="utf-8"))
     assert "Findings" in aws_data
+
+
+def test_sarif_export_with_custom_rules_and_levels():
+    summary = create_sample_summary()
+    custom_rules = {
+        "prompt_injection": {
+            "id": "CORP-RULE-001",
+            "name": "CorporatePromptGuard",
+            "shortDescription": {"text": "Custom corporate description"},
+        }
+    }
+    custom_severity_map = {"HIGH": "warning", "MEDIUM": "error"}
+
+    exporter = SarifExporter(rules=custom_rules, severity_map=custom_severity_map)
+    sarif = exporter.export(summary)
+
+    # Verify custom rule registration
+    rules = sarif["runs"][0]["tool"]["driver"]["rules"]
+    corp_rule = next(r for r in rules if r["id"] == "CORP-RULE-001")
+    assert corp_rule["name"] == "CorporatePromptGuard"
+    assert corp_rule["shortDescription"]["text"] == "Custom corporate description"
+
+    # Verify customized severity levels
+    results = sarif["runs"][0]["results"]
+    assert results[0]["level"] == "warning"  # HIGH mapped to warning
+    assert results[1]["level"] == "error"  # MEDIUM mapped to error
+
+
+def test_aws_asff_export_with_custom_types_and_levels():
+    summary = create_sample_summary()
+    custom_types = {
+        "prompt_injection": ["Custom/PromptInjectionAttack"],
+    }
+    custom_severities = {
+        "HIGH": "MEDIUM",
+        "MEDIUM": "CRITICAL",
+    }
+
+    exporter = AwsSecurityHubExporter(
+        types_mapping=custom_types,
+        severity_mapping=custom_severities,
+    )
+    asff = exporter.export(summary)
+    findings = asff["Findings"]
+
+    # Prompt injection has custom types and severity mapped from HIGH to MEDIUM
+    f1 = findings[0]
+    assert f1["Types"] == ["Custom/PromptInjectionAttack"]
+    assert f1["Severity"]["Label"] == "MEDIUM"
+
+    # Privilege escalation retains default types, severity mapped from MEDIUM to CRITICAL
+    f2 = findings[1]
+    assert "TTPs/Privilege Escalation" in f2["Types"]
+    assert f2["Severity"]["Label"] == "CRITICAL"

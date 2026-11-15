@@ -48,6 +48,29 @@ def test_should_fail_build_thresholds():
     assert should_fail_build([high_report], threshold_str="NONE") is False
 
 
+def test_should_fail_build_custom_order():
+    medium_report = create_sample_report(severity="MEDIUM")
+    custom_order = {"CRITICAL": 5, "MEDIUM": 4, "HIGH": 3}
+    # With custom order where MEDIUM (4) >= threshold (4), it triggers fail
+    assert (
+        should_fail_build([medium_report], threshold_str="MEDIUM", severity_order=custom_order)
+        is True
+    )
+
+
+def test_emit_github_annotations_custom_levels(capsys):
+    report = create_sample_report(severity="MEDIUM")
+    # Default: MEDIUM emits ::warning
+    emit_github_annotations([report])
+    captured = capsys.readouterr()
+    assert "::warning file=" in captured.out
+
+    # Custom override: map MEDIUM to error
+    emit_github_annotations([report], annotation_levels={"MEDIUM": "error"})
+    captured_custom = capsys.readouterr()
+    assert "::error file=" in captured_custom.out
+
+
 def test_generate_step_summary():
     report = create_sample_report()
     summary = AuditSummary(

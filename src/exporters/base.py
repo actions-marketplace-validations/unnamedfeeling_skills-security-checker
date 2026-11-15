@@ -42,7 +42,7 @@ class ExporterRegistry:
         return exporter_cls
 
     @classmethod
-    def get(cls, format_name: str) -> BaseExporter:
+    def get(cls, format_name: str, **kwargs: Any) -> BaseExporter:
         """Instantiates an exporter by its registered format name."""
         key = format_name.strip().lower()
         if key not in cls._registry:
@@ -50,7 +50,7 @@ class ExporterRegistry:
             raise ValueError(
                 f"Unsupported export format '{format_name}'. Available formats: {supported}"
             )
-        return cls._registry[key]()
+        return cls._registry[key](**kwargs)
 
     @classmethod
     def available_formats(cls) -> List[str]:

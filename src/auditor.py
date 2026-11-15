@@ -48,9 +48,14 @@ def load_prompt(
     return FALLBACK_PROMPTS.get(prompt_type, "")
 
 
-def load_system_prompt(custom_prompt_path: str | Path | None = None) -> str:
+def load_system_prompt(
+    custom_prompt_path: str | Path | None = None,
+) -> str:
     """Convenience alias for loading the 'system' level prompt."""
-    return load_prompt(prompt_type="system", custom_prompt_path=custom_prompt_path)
+    return load_prompt(
+        prompt_type="system",
+        custom_prompt_path=custom_prompt_path,
+    )
 
 
 def _format_skill_for_audit(skill: DiscoveredSkill) -> str:

@@ -65,6 +65,74 @@ jobs:
 
 ---
 
+## Enterprise Customization & Policy Overrides
+
+Organizations can customize security policies, rule definitions, and severity classifications externally while retaining the built-in defaults for unmentioned fields.
+
+Overrides can be provided via individual action inputs, environment variables, or a unified `.skills-security.json` in the repository root.
+
+### Example: `.skills-security.json`
+
+```json
+{
+  "prompt_path": "prompts/custom_audit.md",
+  "finding_levels": {
+    "order": {
+      "BLOCKER": 6,
+      "CRITICAL": 5,
+      "HIGH": 4,
+      "MEDIUM": 3,
+      "LOW": 2,
+      "INFO": 1
+    },
+    "sarif_levels": {
+      "CRITICAL": "error",
+      "HIGH": "error",
+      "MEDIUM": "warning"
+    },
+    "aws_levels": {
+      "CRITICAL": "CRITICAL",
+      "HIGH": "HIGH",
+      "MEDIUM": "MEDIUM",
+      "LOW": "LOW",
+      "INFO": "INFORMATIONAL"
+    },
+    "annotation_levels": {
+      "CRITICAL": "error",
+      "HIGH": "error",
+      "MEDIUM": "warning",
+      "LOW": "warning"
+    }
+  },
+  "aws_types_mapping": {
+    "prompt_injection": [
+      "Software and Configuration Checks/Vulnerabilities/Prompt Injection",
+      "TTPs/Initial Access"
+    ]
+  },
+  "sarif_rules": {
+    "prompt_injection": {
+      "id": "ACME-SEC-001",
+      "name": "AcmePromptSecurityPolicy",
+      "shortDescription": { "text": "Violation of Acme AI Agent Prompt Policy" },
+      "help": { "text": "Refer to https://security.internal.acme.corp/policies/ai-skills" }
+    }
+  }
+}
+```
+
+### Action Configuration Inputs
+
+| Input | Description | Default |
+|---|---|---|
+| `prompt-path` | Path to custom audit system prompt markdown file | Built-in `system_audit.md` |
+| `finding-levels` | JSON string or path to JSON file overriding severity ranking, SARIF levels, AWS levels, and annotation levels | Built-in mappings |
+| `aws-types-mapping` | JSON string or path to JSON file overriding AWS Security Hub finding types | Built-in ASFF taxonomy |
+| `sarif-rules` | JSON string or path to JSON file overriding SARIF rule descriptors | Built-in OASIS rules |
+| `config-file` | Path to unified JSON configuration file | Auto-detects `.skills-security.json` |
+
+---
+
 ## Local Development & Testing
 
 ### Prerequisites
