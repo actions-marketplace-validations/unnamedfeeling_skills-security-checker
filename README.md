@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Skills Security Checker
-        uses: ./ # Or your-username/skills-security-checker@v1
+        uses: unnamedfeeling/skills-security-checker@v1 # Or your-username/skills-security-checker@v1
         with:
           target-directories: |
             skills
@@ -154,7 +154,7 @@ Please note: you can use custom configuration file per repository or according t
 ### Installation & Run
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/skills-security-checker.git
+git clone https://github.com/unnamedfeeling/skills-security-checker.git
 cd skills-security-checker
 
 # Sync dependencies

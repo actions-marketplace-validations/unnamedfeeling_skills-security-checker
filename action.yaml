@@ -1,4 +1,5 @@
 name: 'Skill Security Auditor'
+author: 'unnamedfeeling'
 description: 'Audits skills against malicious actions, prompt injections, and unsafe commands using an OpenAI-compatible endpoint'
 branding:
   icon: 'shield'
@@ -7,7 +8,8 @@ branding:
 inputs:
   target-directories:
     description: 'Comma- or newline-separated list of directories to scan (e.g. "skills, prompts, .copilot")'
-    required: true
+    required: false
+    default: '.'
   api-key:
     description: 'API key for the OpenAI-compatible endpoint'
     required: true
@@ -18,7 +20,7 @@ inputs:
   model:
     description: 'Model identifier'
     required: true
-    default: 'gpt-4o'
+    default: "gpt-6-luna"
   fail-on-severity:
     description: 'Minimum severity level to fail the CI workflow (CRITICAL, HIGH, MEDIUM, LOW, NONE). Default: HIGH'
     required: false
