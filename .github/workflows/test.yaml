@@ -5,15 +5,30 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      target_directories:
+        description: 'Directories to audit'
+        required: false
+        default: 'artifacts/sample-project/skills, artifacts/sample-project/prompts, artifacts/sample-project/.copilot'
+      fail_on_severity:
+        description: 'Fail on severity threshold (CRITICAL, HIGH, MEDIUM, LOW, NONE)'
+        required: false
+        default: 'MEDIUM'
 
 jobs:
   test:
     name: Lint, Typecheck & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -35,4 +50,26 @@ jobs:
 
       - name: Run Pytest Test Suite
         run: uv run pytest -v
+
+      - name: Test Run Skill Security Auditor Action
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: ./
+        with:
+          target-directories: ${{ inputs.target_directories }}
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          endpoint: ${{ secrets.OPENAI_ENDPOINT }}
+          model: ${{ secrets.MODEL }}
+          fail-on-severity: ${{ inputs.fail_on_severity }}
+          sarif-file: 'results.sarif'
+          aws-findings-file: 'aws-findings.json'
+
+      - name: Upload Test Audit Artifacts
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-artifacts
+          path: |
+            results.sarif
+            aws-findings.json
+          if-no-files-found: ignore
 

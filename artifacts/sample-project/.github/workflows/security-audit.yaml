@@ -1,0 +1,39 @@
+name: Audit Repository Skills
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  audit:
+    name: Skill Security Audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # If create-issues is enabled
+      security-events: write # If uploading SARIF to GitHub Code Scanning
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Skills Security Checker
+        uses: unnamedfeeling/skills-security-checker@v1 # Or ./ in local testing
+        with:
+          target-directories: |
+            skills
+            prompts
+            .copilot
+          api-key: ${{ secrets.OPENAI_API_KEY }}
+          model: 'gpt-4o'
+          fail-on-severity: 'HIGH'
+          sarif-file: 'results.sarif'
+          aws-findings-file: 'aws-findings.json'
+
+      - name: Upload SARIF to GitHub Security Alerts
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'results.sarif'
