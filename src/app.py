@@ -8,7 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from src.auditor import audit_skill, load_prompt
+from src.auditor import audit_skill, load_prompt_with_parameters
 from src.config import load_audit_config
 from src.exporters import export_findings
 from src.github_issues import create_github_security_issues
@@ -92,10 +92,12 @@ def main() -> None:
 
     # Initialize OpenAI-compatible client and system prompt
     client = OpenAI(base_url=endpoint, api_key=api_key)
-    system_prompt = load_prompt(
+    system_prompt, model_parameters = load_prompt_with_parameters(
         prompt_type="system",
         custom_prompt_path=config.prompt_path,
     )
+    if model_parameters:
+        print(f"::notice::Loaded model parameters from prompt frontmatter: {model_parameters}")
 
     # Root summary across all directories
     summary = AuditSummary()
@@ -134,6 +136,7 @@ def main() -> None:
                     client=client,
                     model=model,
                     system_prompt_override=system_prompt,
+                    model_parameters=model_parameters,
                 )
                 dir_report.reports.append(report)
                 dir_report.risk_score = max(dir_report.risk_score, report.risk_score)

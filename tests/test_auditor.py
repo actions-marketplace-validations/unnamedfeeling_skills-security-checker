@@ -1,6 +1,12 @@
 from unittest.mock import MagicMock
 
-from src.auditor import audit_skill, load_prompt, load_system_prompt
+from src.auditor import (
+    audit_skill,
+    load_prompt,
+    load_prompt_with_parameters,
+    load_system_prompt,
+    parse_prompt_frontmatter,
+)
 from src.models import DiscoveredSkill, SkillAuditReport
 
 
@@ -9,6 +15,39 @@ def test_load_prompt_default():
     assert "# AI Agent Skill Security Auditor" in prompt
     assert "prompt_injection" in prompt
     assert "command_injection" in prompt
+    # Frontmatter header should be stripped from the body
+    assert "model_parameters" not in prompt
+    assert "---" not in prompt
+
+
+def test_load_prompt_with_parameters_default():
+    body, params = load_prompt_with_parameters(prompt_type="system")
+    assert "# AI Agent Skill Security Auditor" in body
+    assert params == {"temperature": 0.1}
+
+
+def test_parse_prompt_frontmatter():
+    raw_content = """---
+name: custom-prompt
+model_parameters:
+  temperature: 0.2
+  top_p: 0.95
+---
+# Actual Prompt Body
+Instructions go here.
+"""
+    body, metadata, params = parse_prompt_frontmatter(raw_content)
+    assert body == "# Actual Prompt Body\nInstructions go here."
+    assert metadata["name"] == "custom-prompt"
+    assert params == {"temperature": 0.2, "top_p": 0.95}
+
+
+def test_parse_prompt_without_frontmatter():
+    raw_content = "# Just markdown\nNo frontmatter here."
+    body, metadata, params = parse_prompt_frontmatter(raw_content)
+    assert body == raw_content
+    assert metadata == {}
+    assert params == {}
 
 
 def test_load_prompt_custom(tmp_path):
@@ -60,6 +99,10 @@ def test_audit_skill_success():
     assert report.risk_score == 0
     assert report.skill_name == "test-skill"
     assert report.skill_path == "skills/test"
+
+    # Verify that frontmatter model parameters (temperature: 0.1) were forwarded
+    parse_kwargs = mock_client.beta.chat.completions.parse.call_args.kwargs
+    assert parse_kwargs["temperature"] == 0.1
 
 
 def test_audit_skill_handles_exception():
