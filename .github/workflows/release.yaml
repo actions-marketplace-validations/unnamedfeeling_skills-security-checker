@@ -33,8 +33,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           VERSION="v${{ steps.release.outputs.version }}"
-          git tag -fa "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
+          # check if the tag already exists, and if so, move on
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists. Skipping tag creation."
+          else
+            git tag -fa "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+          fi
 
           MAJOR_TAG="v${{ steps.release.outputs.major }}"
           git fetch origin "$MAJOR_TAG" || true
