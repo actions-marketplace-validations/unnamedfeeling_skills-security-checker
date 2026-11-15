@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/unnamedfeeling/skills-security-checker/compare/v0.2.0...v0.2.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* tagging conflict resolution; ([eca5809](https://github.com/unnamedfeeling/skills-security-checker/commit/eca5809b3c43203d54c841e7a22d958c6f118cfb))
+* tagging conflict resolution; ([53fdcfa](https://github.com/unnamedfeeling/skills-security-checker/commit/53fdcfa418e17aa1b67aa021f6c9505220792a17))
+
 ## [0.2.0](https://github.com/unnamedfeeling/skills-security-checker/compare/v0.1.0...v0.2.0) (2026-11-15)
 
 
