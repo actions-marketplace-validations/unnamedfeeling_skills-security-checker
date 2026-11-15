@@ -108,7 +108,7 @@ runs:
     - name: Run Skill Security Auditor
       shell: bash
       env:
-        INPUT_TARGET_DIRECTORIES: ${{ inputs.target-directories || inputs.target-directory }}
+        INPUT_TARGET_DIRECTORIES: ${{ inputs.target-directories }}
         INPUT_API_KEY: ${{ inputs.api-key }}
         INPUT_ENDPOINT: ${{ inputs.endpoint }}
         INPUT_MODEL: ${{ inputs.model }}
@@ -128,4 +128,4 @@ runs:
         INPUT_ISSUE_LABELS: ${{ inputs.issue-labels }}
         INPUT_ISSUE_MIN_SEVERITY: ${{ inputs.issue-min-severity }}
       run: |
-        uv run --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py
+        uv run --no-dev --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py
