@@ -127,5 +127,6 @@ runs:
         INPUT_CREATE_ISSUES: ${{ inputs.create-issues }}
         INPUT_ISSUE_LABELS: ${{ inputs.issue-labels }}
         INPUT_ISSUE_MIN_SEVERITY: ${{ inputs.issue-min-severity }}
+        PYTHONPATH: ${{ github.action_path }}
       run: |
         uv run --no-dev --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py
