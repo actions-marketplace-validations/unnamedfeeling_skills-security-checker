@@ -24,7 +24,7 @@ jobs:
 
       # Maintain a floating major tag (e.g., v0 or v1) so GitHub Action consumers can pin to @v0 or @v1
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: ${{ steps.release.outputs.release_created }}
 
       - name: Update floating major tag
