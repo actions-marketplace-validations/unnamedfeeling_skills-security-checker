@@ -1,0 +1,11 @@
+.venv
+.env
+*.py[cod]
+.mypy_cache
+
+__pycache__
+.pytest_cache
+.ruff_cache
+
+artifacts/*
+!artifacts/sample-project

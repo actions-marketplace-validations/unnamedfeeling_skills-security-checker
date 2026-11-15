@@ -1,0 +1,42 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run Release Please
+        id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # Maintain a floating major tag (e.g., v0 or v1) so GitHub Action consumers can pin to @v0 or @v1
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Update floating major tag
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION="v${{ steps.release.outputs.version }}"
+          git tag -fa "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+          MAJOR_TAG="v${{ steps.release.outputs.major }}"
+          git fetch origin "$MAJOR_TAG" || true
+          git tag -fa "$MAJOR_TAG" -m "Release $MAJOR_TAG"
+          git push origin "$MAJOR_TAG" --force

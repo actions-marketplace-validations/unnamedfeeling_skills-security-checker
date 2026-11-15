@@ -1,0 +1,1 @@
+"""Skills Security Checker package."""

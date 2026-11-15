@@ -1,0 +1,132 @@
+name: 'Skill Security Auditor'
+description: 'Audits skills against malicious actions, prompt injections, and unsafe commands using an OpenAI-compatible endpoint'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  target-directories:
+    description: 'Comma- or newline-separated list of directories to scan (e.g. "skills, prompts, .copilot")'
+    required: true
+  api-key:
+    description: 'API key for the OpenAI-compatible endpoint'
+    required: true
+  endpoint:
+    description: 'Base URL for OpenAI-compatible API calls'
+    required: true
+    default: 'https://api.openai.com/v1'
+  model:
+    description: 'Model identifier'
+    required: true
+    default: 'gpt-4o'
+  fail-on-severity:
+    description: 'Minimum severity level to fail the CI workflow (CRITICAL, HIGH, MEDIUM, LOW, NONE). Default: HIGH'
+    required: false
+    default: 'HIGH'
+  show-attribution:
+    description: 'Whether to show the attribution footer in the step summary (true/false). Default: true'
+    required: false
+    default: 'true'
+  prompt-path:
+    description: 'Path to custom audit system prompt markdown file'
+    required: false
+    default: ''
+  finding-levels:
+    description: 'JSON string or file path overriding severity ranking, SARIF levels, AWS levels, and annotation levels'
+    required: false
+    default: ''
+  aws-types-mapping:
+    description: 'JSON string or file path overriding AWS Security Hub finding types mapping'
+    required: false
+    default: ''
+  sarif-rules:
+    description: 'JSON string or file path overriding SARIF rule definitions'
+    required: false
+    default: ''
+  config-file:
+    description: 'Path to a unified JSON configuration file (e.g. .skills-security.json)'
+    required: false
+    default: ''
+  sarif-file:
+    description: 'Path to export findings in SARIF v2.1.0 format (e.g. results.sarif)'
+    required: false
+    default: ''
+  aws-findings-file:
+    description: 'Path to export findings in AWS Security Finding Format ASFF (e.g. aws-findings.json)'
+    required: false
+    default: ''
+  export-formats:
+    description: 'Comma-separated export formats (e.g. "sarif,aws")'
+    required: false
+    default: ''
+  export-output-dir:
+    description: 'Target directory for exported format files (default: .)'
+    required: false
+    default: '.'
+  github-token:
+    description: 'GitHub token for creating security issues (e.g. secrets.GITHUB_TOKEN)'
+    required: false
+    default: ''
+  create-issues:
+    description: 'Whether to create GitHub issues for detected security findings (true/false). Default: false'
+    required: false
+    default: 'false'
+  issue-labels:
+    description: 'Comma-separated labels to attach to created GitHub security issues. Default: "security, automated-audit"'
+    required: false
+    default: 'security, automated-audit'
+  issue-min-severity:
+    description: 'Minimum severity level required to open a GitHub issue (CRITICAL, HIGH, MEDIUM, LOW). Default: HIGH'
+    required: false
+    default: 'HIGH'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Mask secrets in logs
+      shell: bash
+      env:
+        INPUT_API_KEY: ${{ inputs.api-key }}
+      run: |
+        if [ -n "$INPUT_API_KEY" ]; then
+          echo "::add-mask::$INPUT_API_KEY"
+        fi
+  
+    - name: Validate and Install uv
+      id: setup-uv
+      shell: bash
+      run: |
+        if ! command -v uv >/dev/null 2>&1; then
+          echo "Installing uv..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+        else
+          echo "uv is already installed."
+        fi
+
+    - name: Run Skill Security Auditor
+      shell: bash
+      env:
+        INPUT_TARGET_DIRECTORIES: ${{ inputs.target-directories }}
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_ENDPOINT: ${{ inputs.endpoint }}
+        INPUT_MODEL: ${{ inputs.model }}
+        INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
+        INPUT_SHOW_ATTRIBUTION: ${{ inputs.show-attribution }}
+        INPUT_PROMPT_PATH: ${{ inputs.prompt-path }}
+        INPUT_FINDING_LEVELS: ${{ inputs.finding-levels }}
+        INPUT_AWS_TYPES_MAPPING: ${{ inputs.aws-types-mapping }}
+        INPUT_SARIF_RULES: ${{ inputs.sarif-rules }}
+        INPUT_CONFIG_FILE: ${{ inputs.config-file }}
+        INPUT_SARIF_FILE: ${{ inputs.sarif-file }}
+        INPUT_AWS_FINDINGS_FILE: ${{ inputs.aws-findings-file }}
+        INPUT_EXPORT_FORMATS: ${{ inputs.export-formats }}
+        INPUT_EXPORT_OUTPUT_DIR: ${{ inputs.export-output-dir }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_CREATE_ISSUES: ${{ inputs.create-issues }}
+        INPUT_ISSUE_LABELS: ${{ inputs.issue-labels }}
+        INPUT_ISSUE_MIN_SEVERITY: ${{ inputs.issue-min-severity }}
+        PYTHONPATH: ${{ github.action_path }}
+      run: |
+        uv run --no-dev --project ${{ github.action_path }} python ${{ github.action_path }}/src/app.py
