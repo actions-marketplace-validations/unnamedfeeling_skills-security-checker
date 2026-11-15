@@ -38,7 +38,7 @@ jobs:
       security-events: write # Required if upload-sarif is enabled
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Skills Security Checker
         uses: ./ # Or your-username/skills-security-checker@v1
