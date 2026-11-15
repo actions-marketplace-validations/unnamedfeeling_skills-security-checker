@@ -29,7 +29,7 @@ def main() -> None:
     # Read configuration (supporting GitHub Actions inputs and local env variables)
     api_key = os.getenv("INPUT_API_KEY") or os.getenv("API_KEY") or ""
     endpoint = os.getenv("INPUT_ENDPOINT") or os.getenv("ENDPOINT") or "https://api.openai.com/v1"
-    model = os.getenv("INPUT_MODEL") or os.getenv("MODEL") or "gpt-4o"
+    model = os.getenv("INPUT_MODEL") or os.getenv("MODEL") or "gpt-6-luna"
 
     raw_target_dirs = (
         os.getenv("INPUT_TARGET_DIRECTORIES")
