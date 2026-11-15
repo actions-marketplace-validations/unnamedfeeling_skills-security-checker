@@ -1,6 +1,10 @@
 # Skills Security Checker 🛡️
 
-A composite GitHub Action and security CLI that audits agent skills against malicious actions, prompt injections, and unsafe commands using an OpenAI-compatible endpoint.
+A composite GitHub Action and security CLI that audits agent skills and prompts against malicious actions, prompt injections, and unsafe commands using an OpenAI-compatible endpoint.
+
+## Motivation
+
+We are increasingly depending on natural language prompting techniques to write code. This means that increasing amount tools, prompts, agents are added to our codebases. This is an attack vector for malicious actors - planting backdoors, stealing data and secrets and more can be performed through prompts. Thus security of prompts is getting increasingly more important today. The solution here provides a basic guard against such acts of aggression. You can use your own (known good) - LLM models, validation prompts and thresholds. Please read below for more information.
 
 ---
 
@@ -20,6 +24,8 @@ Baseline (included):
 ---
 
 ## Quickstart (GitHub Action)
+
+Good pattern - default workflows running over all of your repositories during PR validation or on schedule.
 
 Add this action to your `.github/workflows/security.yaml`:
 
@@ -74,6 +80,8 @@ jobs:
 Organizations can customize security policies, rule definitions, and severity classifications externally while retaining the built-in defaults for unmentioned fields.
 
 Overrides can be provided via individual action inputs, environment variables, or a unified `.skills-security.json` in the repository root.
+
+Please note: you can use custom configuration file per repository or according to your organization rules in runtime.
 
 ### Example: `.skills-security.json`
 
