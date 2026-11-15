@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/unnamedfeeling/skills-security-checker/compare/v1.1.0...v1.1.1) (2026-11-15)
+
+
+### Miscellaneous Chores
+
+* update docs; ([a3f9d45](https://github.com/unnamedfeeling/skills-security-checker/commit/a3f9d456fe749fbb4e7c5601d85f347607443c64))
+
 ## [1.1.0](https://github.com/unnamedfeeling/skills-security-checker/compare/v1.0.0...v1.1.0) (2026-11-15)
 
 
